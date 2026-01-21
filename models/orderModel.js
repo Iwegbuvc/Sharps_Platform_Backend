@@ -10,6 +10,8 @@ const orderItemSchema = new mongoose.Schema({
   price: Number,
   quantity: Number,
   size: String,
+  image: String,
+  color: String,
 });
 
 const orderSchema = new mongoose.Schema(
