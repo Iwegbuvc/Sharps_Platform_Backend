@@ -23,7 +23,7 @@ const registerUser = async (req, res) => {
     const token = jwt.sign(
       { id: newUser._id, role: newUser.role },
       process.env.ACCESS_TOKEN_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: "7d" },
     );
 
     res.status(201).json({
@@ -41,39 +41,46 @@ const registerUser = async (req, res) => {
   }
 };
 
-// LOGIN USER
 const loginUser = async (req, res) => {
+  const { email, password } = req.body;
+
   try {
-    const { email, password } = req.body;
-    if (!email || !password)
-      return res.status(400).json({ message: "Enter required fields" });
+    const user = await User.findOne({ email });
 
-    const foundUser = await User.findOne({ email });
-    if (!foundUser) return res.status(404).json({ message: "User not found" });
+    if (!user) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
 
-    const passwordMatch = await bcrypt.compare(password, foundUser.password);
-    if (!passwordMatch)
-      return res.status(400).json({ message: "Invalid email or password" });
+    // 🔥 BLOCKED USER CHECK (THIS WAS MISSING)
+    if (user.status === "Blocked") {
+      return res.status(403).json({
+        message: "Your account has been blocked. Contact support.",
+      });
+    }
 
-    const accessToken = jwt.sign(
-      { id: foundUser._id, role: foundUser.role },
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
       process.env.ACCESS_TOKEN_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "1h" },
     );
 
-    res.status(200).json({
+    res.json({
       message: "User login successful",
-      token: accessToken,
+      token,
       user: {
-        id: foundUser._id,
-        name: foundUser.name,
-        email: foundUser.email,
-        role: foundUser.role,
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
       },
     });
   } catch (error) {
-    console.error("Login error:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -121,7 +128,7 @@ const logoutUser = async (req, res) => {
     try {
       await User.updateOne(
         { refreshToken: cookies.refreshToken },
-        { $pull: { refreshToken: cookies.refreshToken } }
+        { $pull: { refreshToken: cookies.refreshToken } },
       );
     } catch (err) {
       console.error("Refresh Token DB Cleanup Error:", err);

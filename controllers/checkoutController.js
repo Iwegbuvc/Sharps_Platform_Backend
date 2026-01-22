@@ -1,15 +1,32 @@
-// const crypto = require("crypto");
+const crypto = require("crypto");
 const Cart = require("../models/cartModel");
 const Order = require("../models/orderModel");
 const Product = require("../models/productModel");
 const axios = require("axios");
 
-// ✅ ADD THIS
+// ✅ Utility functions
 const calculateCartTotal = (items) => {
   return items.reduce((total, item) => {
     return total + item.priceAtTime * item.quantity;
   }, 0);
 };
+
+const mapOrderToFrontend = (order) => ({
+  id: order._id,
+  user: order.user,
+  items: order.items.map((item) => ({
+    product: item.product,
+    name: item.name,
+    price: item.price,
+    quantity: item.quantity,
+    size: item.size,
+    image: item.image,
+  })),
+  shippingAddress: order.shippingAddress,
+  totalAmount: order.totalAmount,
+  paymentStatus: order.paymentStatus,
+  paidAt: order.paidAt,
+});
 
 const createCheckout = async (req, res) => {
   try {
@@ -98,13 +115,71 @@ const initializePayment = async (req, res) => {
   }
 };
 
+// const verifyPayment = async (req, res) => {
+//   try {
+//     const { reference, orderId } = req.body;
+
+//     console.log("Paystack secret key:", process.env.PAYSTACK_SECRET_KEY);
+
+//     // Call Paystack API to verify transaction
+//     const response = await axios.get(
+//       `https://api.paystack.co/transaction/verify/${reference}`,
+//       {
+//         headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` },
+//       },
+//     );
+
+//     if (!response.data.status) {
+//       return res.status(400).json({ message: "Payment verification failed" });
+//     }
+
+//     const order = await Order.findById(orderId);
+//     if (!order) return res.status(404).json({ message: "Order not found" });
+
+//     // Update order as paid
+//     order.paymentStatus = "paid";
+//     order.paymentReference = reference;
+//     order.paidAt = new Date();
+//     await order.save();
+
+//     // Reduce product stock
+//     for (const item of order.items) {
+//       await Product.findByIdAndUpdate(item.product, {
+//         $inc: { stock: -item.quantity },
+//       });
+//     }
+
+//     // Clear user's cart
+//     await Cart.findOneAndDelete({ user: order.user });
+
+//     res.json({
+//       message: "Payment verified",
+//       order: mapOrderToFrontend(order),
+//     });
+//   } catch (error) {
+//     console.error(error.response?.data || error.message);
+//     res.status(500).json({ message: "Payment verification failed" });
+//   }
+// };
 const verifyPayment = async (req, res) => {
   try {
     const { reference, orderId } = req.body;
 
     console.log("Paystack secret key:", process.env.PAYSTACK_SECRET_KEY);
 
-    // Call Paystack API to verify transaction
+    // 1️⃣ Find the order first
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
+    // 2️⃣ If already paid, return the order without processing again
+    if (order.paymentStatus === "paid") {
+      return res.json({
+        message: "Payment already verified",
+        order: mapOrderToFrontend(order),
+      });
+    }
+
+    // 3️⃣ Verify transaction with Paystack
     const response = await axios.get(
       `https://api.paystack.co/transaction/verify/${reference}`,
       {
@@ -116,25 +191,23 @@ const verifyPayment = async (req, res) => {
       return res.status(400).json({ message: "Payment verification failed" });
     }
 
-    const order = await Order.findById(orderId);
-    if (!order) return res.status(404).json({ message: "Order not found" });
-
-    // Update order as paid
+    // 4️⃣ Mark order as paid
     order.paymentStatus = "paid";
     order.paymentReference = reference;
     order.paidAt = new Date();
     await order.save();
 
-    // Reduce product stock
+    // 5️⃣ Reduce product stock
     for (const item of order.items) {
       await Product.findByIdAndUpdate(item.product, {
         $inc: { stock: -item.quantity },
       });
     }
 
-    // Clear user's cart
+    // 6️⃣ Clear user's cart
     await Cart.findOneAndDelete({ user: order.user });
 
+    // 7️⃣ Return the cleaned-up order
     res.json({
       message: "Payment verified",
       order: mapOrderToFrontend(order),

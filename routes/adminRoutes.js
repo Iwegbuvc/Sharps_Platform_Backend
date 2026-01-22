@@ -7,31 +7,19 @@ const { verifyToken, isAdmin } = require("../middlewares/validateToken");
 const {
   getAllUsers,
   toggleUserStatus,
-} = require("../controllers/adminController");
-const {
-  createProduct,
-  getProducts,
-  getProductById,
-  updateProduct,
-  deleteProduct,
-} = require("../controllers/productController");
-const {
   getAllOrders,
   updateOrderStatus,
+  getDashboardStats,
 } = require("../controllers/adminController");
 
-// ----------------- USERS -----------------
+// Dashboard Stats
+router.get("/dashboard/stats", verifyToken, isAdmin, getDashboardStats);
+
+// USERS
 router.get("/users", verifyToken, isAdmin, getAllUsers);
 router.patch("/users/:id/status", verifyToken, isAdmin, toggleUserStatus);
 
-// ----------------- PRODUCTS -----------------
-router.post("/products", verifyToken, isAdmin, createProduct);
-router.get("/products", verifyToken, isAdmin, getProducts);
-router.get("/products/:id", verifyToken, isAdmin, getProductById);
-router.put("/products/:id", verifyToken, isAdmin, updateProduct);
-router.delete("/products/:id", verifyToken, isAdmin, deleteProduct);
-
-// ----------------- ORDERS -----------------
+// ORDERS
 router.get("/orders", verifyToken, isAdmin, getAllOrders);
 router.patch("/orders/:id/status", verifyToken, isAdmin, updateOrderStatus);
 

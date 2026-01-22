@@ -1,13 +1,53 @@
 // controllers/adminUserController.js
 const User = require("../models/usersModel");
 const Order = require("../models/orderModel");
-const Product = require("../models/productModel");
+// const Product = require("../models/productModel");
 
-// GET ALL USERS
+// GET ALL USERS (Admin) with pagination, filters & search
 const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select("-password");
-    res.json(users);
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // 🔍 Build filters
+    const filter = {};
+
+    // Filter by role
+    if (req.query.role) {
+      filter.role = req.query.role; // user | admin
+    }
+
+    // Filter by status
+    if (req.query.status) {
+      filter.status = req.query.status; // Active | Blocked
+    }
+
+    // Search by name or email
+    if (req.query.search) {
+      filter.$or = [
+        { name: { $regex: req.query.search, $options: "i" } },
+        { email: { $regex: req.query.search, $options: "i" } },
+      ];
+    }
+
+    // 👥 Fetch users
+    const users = await User.find(filter)
+      .select("-password")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    // 📊 Count for pagination
+    const totalUsers = await User.countDocuments(filter);
+
+    res.json({
+      page,
+      limit,
+      totalUsers,
+      totalPages: Math.ceil(totalUsers / limit),
+      users,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -28,13 +68,41 @@ const toggleUserStatus = async (req, res) => {
   }
 };
 
-// GET ALL ORDERS
+// GET ALL ORDERS (Admin) with pagination & filters
 const getAllOrders = async (req, res) => {
   try {
-    const orders = await Order.find()
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // 🔍 Build filters dynamically
+    const filter = {};
+
+    if (req.query.paymentStatus) {
+      filter.paymentStatus = req.query.paymentStatus; // paid | pending | failed
+    }
+
+    if (req.query.orderStatus) {
+      filter.orderStatus = req.query.orderStatus; // processing | shipped | delivered | cancelled
+    }
+
+    // 📦 Query orders
+    const orders = await Order.find(filter)
       .populate("user", "name email")
-      .sort({ createdAt: -1 });
-    res.json(orders);
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    // 📊 Total count (for pagination)
+    const totalOrders = await Order.countDocuments(filter);
+
+    res.json({
+      page,
+      limit,
+      totalOrders,
+      totalPages: Math.ceil(totalOrders / limit),
+      orders,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -44,15 +112,80 @@ const getAllOrders = async (req, res) => {
 const updateOrderStatus = async (req, res) => {
   try {
     const { status } = req.body;
+
+    const allowedStatuses = ["processing", "shipped", "delivered", "cancelled"];
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ message: "Invalid order status" });
+    }
+
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: "Order not found" });
 
-    order.status = status;
+    order.orderStatus = status;
+
+    if (status === "shipped") {
+      order.shippedAt = new Date();
+    }
+
+    if (status === "delivered") {
+      order.deliveredAt = new Date();
+    }
+
     await order.save();
 
-    res.json({ message: "Order status updated", order });
+    res.json({
+      message: "Order status updated",
+      orderStatus: order.orderStatus,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+// GET DASHBOARD STATS (total revenue, orders, products, recent orders)
+const getDashboardStats = async (req, res) => {
+  try {
+    // Get all orders
+    const orders = await Order.find();
+
+    // Calculate total revenue
+    const totalRevenue = orders.reduce(
+      (sum, order) => sum + (order.totalAmount || 0),
+      0,
+    );
+
+    // Get total orders count
+    const totalOrders = orders.length;
+
+    // Get recent orders (last 5)
+    const recentOrders = orders
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 5)
+      .map((order) => ({
+        _id: order._id,
+        totalAmount: order.totalAmount,
+        paymentStatus: order.paymentStatus,
+        createdAt: order.createdAt,
+      }));
+
+    // Get total products count
+    const Product = require("../models/productModel");
+    const totalProducts = await Product.countDocuments();
+
+    // Get total users count
+    const totalUsers = await User.countDocuments();
+
+    res.json({
+      totalRevenue,
+      totalOrders,
+      totalProducts,
+      totalUsers,
+      recentOrders,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch dashboard stats" });
   }
 };
 
@@ -61,4 +194,5 @@ module.exports = {
   toggleUserStatus,
   getAllOrders,
   updateOrderStatus,
+  getDashboardStats,
 };

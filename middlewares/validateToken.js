@@ -32,6 +32,13 @@ const verifyToken = async (req, res, next) => {
       return res.status(404).json({ message: "User not found" });
     } // Attach safe user info to request
 
+    // 🔥 BLOCKED USER CHECK
+    if (user.status === "Blocked") {
+      return res.status(403).json({
+        message: "Your account has been blocked. Contact support.",
+      });
+    }
+
     req.user = {
       id: user._id,
       email: user.email,
