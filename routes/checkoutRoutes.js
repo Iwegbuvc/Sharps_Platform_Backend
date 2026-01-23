@@ -7,17 +7,21 @@ const {
   getOrderById,
 } = require("../controllers/checkoutController");
 const { verifyToken } = require("../middlewares/validateToken");
+const {
+  checkoutLimiter,
+  webhookLimiter,
+} = require("../middlewares/rateLimiter");
 
 const router = express.Router();
 
-router.post("/paystack/webhook", paystackWebhook);
+router.post("/paystack/webhook", webhookLimiter, paystackWebhook);
 
 // Create order from cart
-router.post("/", verifyToken, createCheckout);
+router.post("/", verifyToken, checkoutLimiter, createCheckout);
 
-router.post("/initialize", verifyToken, initializePayment);
+router.post("/initialize", verifyToken, checkoutLimiter, initializePayment);
 
 // Verify Paystack payment
-router.post("/verify", verifyToken, verifyPayment);
+router.post("/verify", verifyToken, checkoutLimiter, verifyPayment);
 
 module.exports = router;
