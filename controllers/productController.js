@@ -74,18 +74,10 @@ const getProducts = async (req, res) => {
     if (isNew) filter.isNew = isNew === "true";
     if (featured) filter.featured = featured === "true";
 
-    // 🔍 SEARCH LOGIC
+    // 🔍 SEARCH LOGIC (use MongoDB text index for better results)
     if (search && search.trim() !== "") {
-      filter.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } },
-        { category: { $regex: search, $options: "i" } },
-      ];
+      filter.$text = { $search: search };
     }
-    // Using text index for larger product
-    // if (search && search.trim() !== "") {
-    //   filter.$text = { $search: search };
-    // }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
