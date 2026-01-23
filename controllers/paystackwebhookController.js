@@ -55,4 +55,4 @@ const paystackWebhook = async (req, res) => {
   }
 };
 
-module.exports = { paystackWebhook };
+module.exports = paystackWebhook;

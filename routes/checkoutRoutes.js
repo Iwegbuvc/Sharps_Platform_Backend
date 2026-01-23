@@ -1,5 +1,5 @@
 const express = require("express");
-const { paystackWebhook } = require("../controllers/paystackwebhookController");
+const paystackWebhook = require("../controllers/paystackwebhookController");
 const {
   createCheckout,
   verifyPayment,
