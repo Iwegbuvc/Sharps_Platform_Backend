@@ -25,12 +25,51 @@ app.post(
 );
 app.use(express.json());
 app.use(cookieParser());
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://sharps-platform-zqio.vercel.app",
+];
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin: function (origin, callback) {
+      // allow requests with no origin (Postman, Paystack webhook)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   }),
 );
+
+// app.use(
+//   // Allow configured frontend plus common local dev origins.
+//   // Use a dynamic origin function so browser preflight checks succeed.
+//   cors({
+//     origin: function (origin, callback) {
+//       const allowed = [process.env.FRONTEND_URL];
+//       // include localhost dev origins
+//       allowed.push(
+//         "http://localhost:5173",
+//         "http://localhost:3000",
+//         "http://localhost:5174",
+//       );
+//       // allow requests with no origin (eg. curl, mobile apps)
+//       if (!origin) return callback(null, true);
+//       if (allowed.indexOf(origin) !== -1) {
+//         callback(null, true);
+//       } else {
+//         callback(new Error("Not allowed by CORS"));
+//       }
+//     },
+//     credentials: true,
+//   }),
+// );
 
 // 🔒 Apply general rate limiter to all API routes
 app.use("/api/", generalLimiter);
