@@ -49,6 +49,7 @@ const createCheckout = async (req, res) => {
 
     const totalAmount = calculateCartTotal(cart.items);
 
+    const paymentMethod = req.body.paymentMethod || "Paystack";
     const order = await Order.create({
       user: req.user.id,
       items: cart.items.map((item) => ({
@@ -61,7 +62,9 @@ const createCheckout = async (req, res) => {
       })),
       shippingAddress: req.body.shippingAddress,
       totalAmount,
-      paymentStatus: "pending",
+      paymentStatus:
+        paymentMethod === "Pay on Delivery" ? "Not Paid" : "pending",
+      paymentMethod,
     });
 
     res.status(201).json({

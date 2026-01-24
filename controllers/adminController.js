@@ -78,6 +78,11 @@ const getAllOrders = async (req, res) => {
     // 🔍 Build filters dynamically
     const filter = {};
 
+    // Filter by payment method
+    if (req.query.paymentMethod) {
+      filter.paymentMethod = req.query.paymentMethod; // Paystack | Pay on Delivery
+    }
+
     if (req.query.paymentStatus) {
       filter.paymentStatus = req.query.paymentStatus; // paid | pending | failed
     }
@@ -91,7 +96,29 @@ const getAllOrders = async (req, res) => {
       .populate("user", "name email")
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
+
+    // Add paymentMethod and mapped paymentStatus for frontend clarity
+    const ordersWithPayment = orders.map((order) => {
+      let mappedPaymentStatus = order.paymentStatus;
+      if (
+        order.paymentMethod === "Pay on Delivery" &&
+        order.paymentStatus !== "paid"
+      ) {
+        mappedPaymentStatus = "Not Paid";
+      } else if (
+        order.paymentMethod === "Paystack" &&
+        order.paymentStatus !== "paid"
+      ) {
+        mappedPaymentStatus = "Pending";
+      }
+      return {
+        ...order,
+        paymentMethod: order.paymentMethod || "Paystack",
+        paymentStatus: mappedPaymentStatus,
+      };
+    });
 
     // 📊 Total count (for pagination)
     const totalOrders = await Order.countDocuments(filter);
@@ -101,7 +128,7 @@ const getAllOrders = async (req, res) => {
       limit,
       totalOrders,
       totalPages: Math.ceil(totalOrders / limit),
-      orders,
+      orders: ordersWithPayment,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

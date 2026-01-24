@@ -5,7 +5,8 @@ const mapOrderToFrontend = (order) => ({
   _id: order._id,
   createdAt: order.createdAt,
   isPaid: order.paymentStatus === "paid",
-  paymentMethod: "Paystack",
+  paymentStatus: order.paymentStatus,
+  paymentMethod: order.paymentMethod || "Paystack",
   shippingAddress: {
     address: order.shippingAddress.address,
     city: order.shippingAddress.city,

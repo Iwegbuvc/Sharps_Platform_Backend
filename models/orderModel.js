@@ -42,6 +42,12 @@ const orderSchema = new mongoose.Schema(
       default: "pending",
     },
 
+    paymentMethod: {
+      type: String,
+      enum: ["Paystack", "Pay on Delivery"],
+      default: "Paystack",
+    },
+
     orderStatus: {
       type: String,
       enum: ["processing", "shipped", "delivered", "cancelled"],
