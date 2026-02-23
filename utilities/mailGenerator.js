@@ -13,7 +13,7 @@ const forgotPasswordMail = (firstName, resetPasswordToken) => {
     <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 20px auto;">
         <!-- Header -->
         <tr>
-            <td style="background-color: #2F67FA; padding: 20px; text-align: center;">
+            <td style="background-color: #FFD700; padding: 20px; text-align: center;">
                 <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Sharps Clothing</h1>
                 <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">Secure Your Account</p>
             </td>
@@ -22,7 +22,7 @@ const forgotPasswordMail = (firstName, resetPasswordToken) => {
         <!-- Main Content -->
         <tr>
             <td style="background-color: #ffffff; padding: 30px;">
-                <h2 style="color: #2F67FA; margin: 0 0 20px 0;">Reset Your Password</h2>
+                <h2 style="color: #FFD700; margin: 0 0 20px 0;">Reset Your Password</h2>
                 <p style="line-height: 1.6; margin: 0 0 20px 0;">
                     Hello ${firstName},<br><br>
                     We received a request to reset your Sharps Clothing account password on 
@@ -32,7 +32,7 @@ const forgotPasswordMail = (firstName, resetPasswordToken) => {
                 <!-- Reset Password Button -->
                 <table border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto 20px;">
                     <tr>
-                        <td style="background-color: #2F67FA; border-radius: 5px;">
+                        <td style="background-color: #FFD700; border-radius: 5px;">
                             <a href="${
                               process.env.FRONTEND_URL
                             }/reset-password?token=${resetPasswordToken}" 
@@ -48,7 +48,7 @@ const forgotPasswordMail = (firstName, resetPasswordToken) => {
                     Or copy and paste this link into your browser:<br>
                     <a href="${
                       process.env.FRONTEND_URL
-                    }/reset-password?token=${resetPasswordToken}" style="color: #2F67FA; word-break: break-all;">${
+                    }/reset-password?token=${resetPasswordToken}" style="color: #FFD700; word-break: break-all;">${
                       process.env.FRONTEND_URL
                     }/reset-password?token=${resetPasswordToken}</a>
                 </p>
@@ -64,7 +64,7 @@ const forgotPasswordMail = (firstName, resetPasswordToken) => {
         <tr>
             <td style="background-color: #fff5f0; padding: 20px; font-size: 14px;">
                 <p style="margin: 0; line-height: 1.6;">
-                    <strong style="color: #2F67FA;">Tip:</strong> Choose a strong, unique password 
+                    <strong style="color: #FFD700;">Tip:</strong> Choose a strong, unique password 
                     to keep your Sharps Clothing account secure.
                 </p>
             </td>
