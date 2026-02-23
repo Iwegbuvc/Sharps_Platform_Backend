@@ -2,6 +2,11 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/usersModel");
 const BlacklistedToken = require("../models/blackListTokenModel"); // Needed for logout
+const {
+  forgotPasswordMail,
+  generatePasswordResetMail,
+} = require("../utilities/mailGenerator");
+const sendMail = require("../utilities/sendMail");
 
 // REGISTER USER
 const registerUser = async (req, res) => {
@@ -40,7 +45,7 @@ const registerUser = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
-
+// LOGIN USER
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
@@ -83,7 +88,102 @@ const loginUser = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+// forgot password
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ message: "Enter your email" });
+  }
 
+  try {
+    const foundUser = await User.findOne({ email });
+    if (!foundUser) {
+      // For extra security, you may want to always return success here
+      return res.status(404).json({ message: "User does not exist" });
+    }
+
+    // Generate reset token (JWT)
+    const resetToken = jwt.sign(
+      { email: foundUser.email },
+      process.env.PASSWORD_RESET_TOKEN,
+      { expiresIn: "1h" },
+    );
+
+    // Save token in DB
+    foundUser.resetPasswordToken = resetToken;
+    await foundUser.save();
+
+    // Send email
+    const html = forgotPasswordMail(foundUser.name || "Customer", resetToken);
+    await sendMail(
+      foundUser.email,
+      "Reset Your Password - Sharps Clothing",
+      html,
+    );
+
+    return res
+      .status(200)
+      .json({ message: "Reset password link sent successfully", email });
+  } catch (error) {
+    console.error("Forgot Password Error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Reset Password
+const resetPassword = async (req, res) => {
+  const { resetToken, password } = req.body;
+
+  if (!resetToken || !password) {
+    return res.status(400).json({
+      message: "Enter required fields",
+    });
+  }
+
+  try {
+    // Verify token
+    const decoded = jwt.verify(resetToken, process.env.PASSWORD_RESET_TOKEN);
+
+    // Find user by token
+    const foundUser = await User.findOne({
+      email: decoded.email,
+      resetPasswordToken: resetToken,
+    });
+
+    if (!foundUser) {
+      return res
+        .status(401)
+        .json({ message: "Invalid or expired reset token" });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Prevent reusing old password
+    const isSamePassword = await bcrypt.compare(password, foundUser.password);
+    if (isSamePassword) {
+      return res.status(400).json({
+        message: "New password cannot be the same as the old password",
+      });
+    }
+
+    // Update password & clear reset token
+    foundUser.password = hashedPassword;
+    foundUser.resetPasswordToken = null;
+    await foundUser.save();
+
+    // Send confirmation email
+    const html = generatePasswordResetMail(foundUser.name || "Customer");
+    await sendMail(foundUser.email, "Password Reset - Sharps Clothing", html);
+
+    return res.status(200).json({
+      message: "Password reset successfully",
+    });
+  } catch (error) {
+    console.error("Reset Password Error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
 // GET PROFILE (protected)
 const getProfile = async (req, res) => {
   try {
@@ -99,7 +199,6 @@ const getProfile = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 // LOGOUT USER (protected)
 const logoutUser = async (req, res) => {
   const cookies = req.cookies;
@@ -147,4 +246,11 @@ const logoutUser = async (req, res) => {
   return res.status(204).send(); // Logout successful
 };
 
-module.exports = { registerUser, loginUser, getProfile, logoutUser };
+module.exports = {
+  registerUser,
+  loginUser,
+  getProfile,
+  logoutUser,
+  forgotPassword,
+  resetPassword,
+};

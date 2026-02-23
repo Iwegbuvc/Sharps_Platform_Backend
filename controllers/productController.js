@@ -100,69 +100,6 @@ const getProducts = async (req, res) => {
   }
 };
 
-// const updateProduct = async (req, res) => {
-//   try {
-//     const product = await Product.findById(req.params.id);
-
-//     if (!product) {
-//       return res.status(404).json({ message: "Product not found" });
-//     }
-
-//     const {
-//       name,
-//       description,
-//       price,
-//       stock,
-//       category,
-//       gender,
-//       sizes,
-//       isNew,
-//       featured,
-//     } = req.body;
-
-//     // Update text fields
-//     product.name = name ?? product.name;
-//     product.description = description ?? product.description;
-//     product.price = price ?? product.price;
-//     product.stock = stock ?? product.stock;
-//     product.category = category ?? product.category;
-//     product.gender = gender ?? product.gender;
-//     product.sizes = sizes ? sizes.split(",") : product.sizes;
-//     product.isNew = isNew ?? product.isNew;
-//     product.featured = featured ?? product.featured;
-
-//     // If new images uploaded → replace old ones
-//     if (req.files && req.files.length > 0) {
-//       // delete old cloudinary images
-//       for (const img of product.images) {
-//         const publicId = img.url.split("/").pop().split(".")[0];
-//         await cloudinary.uploader.destroy(`products/${publicId}`);
-//       }
-
-//       const images = await Promise.all(
-//         req.files.map(async (file) => {
-//           const result = await cloudinary.uploader.upload(file.path, {
-//             folder: "products",
-//           });
-
-//           fs.unlinkSync(file.path);
-
-//           return {
-//             url: result.secure_url,
-//             altText: product.name,
-//           };
-//         }),
-//       );
-
-//       product.images = images;
-//     }
-
-//     const updatedProduct = await product.save();
-//     res.json(updatedProduct);
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };
 const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
