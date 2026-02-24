@@ -59,6 +59,7 @@ const createCheckout = async (req, res) => {
         quantity: item.quantity,
         size: item.size,
         image: item.product.images[0]?.url,
+        selectedImage: item.selectedImage,
       })),
       shippingAddress: req.body.shippingAddress,
       totalAmount,

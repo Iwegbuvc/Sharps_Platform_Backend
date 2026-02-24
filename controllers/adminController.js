@@ -91,9 +91,10 @@ const getAllOrders = async (req, res) => {
       filter.orderStatus = req.query.orderStatus; // processing | shipped | delivered | cancelled
     }
 
-    // 📦 Query orders
+    // 📦 Query orders and populate items.product (with selectedImage in items)
     const orders = await Order.find(filter)
       .populate("user", "name email")
+      .populate("items.product", "name images price")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -113,10 +114,21 @@ const getAllOrders = async (req, res) => {
       ) {
         mappedPaymentStatus = "Pending";
       }
+
+      // If items exist, include selectedImage in each item
+      let cartItems = [];
+      if (order.items && Array.isArray(order.items)) {
+        cartItems = order.items.map((item) => ({
+          ...item,
+          selectedImage: item.selectedImage,
+        }));
+      }
+
       return {
         ...order,
         paymentMethod: order.paymentMethod || "Paystack",
         paymentStatus: mappedPaymentStatus,
+        cartItems, // expose cart items with selectedImage
       };
     });
 
@@ -131,6 +143,7 @@ const getAllOrders = async (req, res) => {
       orders: ordersWithPayment,
     });
   } catch (err) {
+    console.log(err);
     res.status(500).json({ message: err.message });
   }
 };

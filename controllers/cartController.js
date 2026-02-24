@@ -20,7 +20,7 @@ const getCart = async (req, res) => {
 
 // ADD TO CART
 const addToCart = async (req, res) => {
-  const { productId, quantity = 1, size, color } = req.body;
+  const { productId, quantity = 1, size, color, selectedImage } = req.body;
 
   const product = await Product.findById(productId);
   if (!product) return res.status(404).json({ message: "Product not found" });
@@ -35,7 +35,8 @@ const addToCart = async (req, res) => {
     (item) =>
       item.product.toString() === productId &&
       item.size === size &&
-      item.color === color,
+      item.color === color &&
+      item.selectedImage === selectedImage,
   );
 
   if (existingItem) {
@@ -47,6 +48,7 @@ const addToCart = async (req, res) => {
       size,
       color,
       priceAtTime: product.price,
+      selectedImage,
     });
   }
 

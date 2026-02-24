@@ -11,6 +11,7 @@ const orderItemSchema = new mongoose.Schema({
   quantity: Number,
   size: String,
   image: String,
+  selectedImage: String,
   color: String,
 });
 
