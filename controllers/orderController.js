@@ -19,6 +19,7 @@ const mapOrderToFrontend = (order) => ({
     quantity: item.quantity,
     size: item.size,
     image: item.image || "",
+    selectedImage: item.selectedImage || "",
     color: item.color || "",
   })),
   totalPrice: order.totalAmount,
