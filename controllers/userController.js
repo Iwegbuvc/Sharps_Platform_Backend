@@ -74,7 +74,28 @@ const loginUser = async (req, res) => {
       { expiresIn: "1h" },
     );
 
-    res.json({
+    // Generate refresh token
+    const refreshToken = jwt.sign(
+      { id: user._id, email: user.email },
+      process.env.REFRESH_TOKEN_SECRET,
+      { expiresIn: "7d" },
+    );
+
+    // Save refresh token to user in DB
+    user.refreshToken = user.refreshToken || [];
+    user.refreshToken.push(refreshToken);
+    await user.save();
+
+    // Set refresh token as HTTP-only cookie
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: "/",
+    });
+
+    res.status(200).json({
       message: "User login successful",
       token,
       user: {
@@ -184,6 +205,110 @@ const resetPassword = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+// Refresh Token Handler with Rotation
+const handleRefreshToken = async (req, res) => {
+  // 1. Check for Refresh Token in Cookies
+  const cookies = req.cookies;
+  if (!cookies?.refreshToken) {
+    return res
+      .status(401)
+      .json({ message: "Unauthorized: Refresh Token Missing" });
+  }
+  const refreshToken = cookies.refreshToken; // This is the OLD/INCOMING refresh token
+
+  // 2. Find the User with the Refresh Token in the Database
+  try {
+    // Find a user who has this specific token in their 'refreshToken' array
+    const foundUser = await User.findOne({ refreshToken: refreshToken }).exec();
+
+    // Check 2a: Was the token found in the database?
+    if (!foundUser) {
+      // This is the critical security check for a token used after logout/theft.
+      return res
+        .status(403)
+        .json({ message: "Forbidden: Invalid Refresh Token" });
+    }
+
+    // 3. Verify the JWT Signature and Expiration
+    jwt.verify(
+      refreshToken,
+      process.env.REFRESH_TOKEN_SECRET,
+      async (err, decoded) => {
+        if (err || foundUser._id.toString() !== decoded.id) {
+          // Clear ALL refresh tokens for this user because this one was replayed or tampered with
+          console.error(
+            `SECURITY ALERT: Token verification failed for user ID ${foundUser._id}. Wiping all tokens.`,
+          );
+          foundUser.refreshToken = [];
+          await foundUser.save();
+
+          return res
+            .status(403)
+            .json({ message: "Forbidden: Token Verification Failed" });
+        }
+
+        // ----------------------------------------------------
+        // 🚀 START OF NEW ROTATION LOGIC 🚀
+        // ----------------------------------------------------
+
+        // 4a. Generate a NEW Refresh Token
+        const newRefreshToken = jwt.sign(
+          { id: foundUser._id, email: foundUser.email },
+          process.env.REFRESH_TOKEN_SECRET,
+          { expiresIn: "7d" }, // New 7-day token
+        );
+
+        // 4b. Find and remove the OLD refresh token from the database array
+        foundUser.refreshToken = foundUser.refreshToken.filter(
+          (token) => token !== refreshToken,
+        );
+
+        // 4c. Add the NEW refresh token to the database array and save
+        foundUser.refreshToken.push(newRefreshToken);
+        await foundUser.save(); // 👈 This MUST be awaited!
+
+        // 4d. Generate the new Access Token (short life)
+        const newAccessToken = jwt.sign(
+          { id: foundUser._id, email: foundUser.email },
+          process.env.ACCESS_TOKEN_SECRET,
+          { expiresIn: "1h" },
+        );
+
+        // 4e. Blacklist the old access token if provided in the request header
+        const oldAccessTokenHeader = req.headers["authorization"];
+        if (oldAccessTokenHeader && oldAccessTokenHeader.startsWith("Bearer ")) {
+          const oldAccessToken = oldAccessTokenHeader.split(" ")[1];
+          try {
+            // Decode to get expiry
+            const decoded = jwt.decode(oldAccessToken);
+            if (decoded && decoded.exp) {
+              const expiresAt = new Date(decoded.exp * 1000);
+              await BlacklistedToken.create({ token: oldAccessToken, expiresAt });
+            }
+          } catch (err) {
+            console.warn("Failed to blacklist old access token:", err);
+          }
+        }
+
+        // 5. Send the NEW Refresh Token in a cookie (and the new Access Token)
+        res.cookie("refreshToken", newRefreshToken, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "none",
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+          path: "/",
+        });
+
+        res.status(200).json({ accessToken: newAccessToken });
+
+        //  END OF NEW ROTATION LOGIC
+      },
+    );
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
 // GET PROFILE (protected)
 const getProfile = async (req, res) => {
   try {
@@ -251,6 +376,7 @@ module.exports = {
   loginUser,
   getProfile,
   logoutUser,
+  handleRefreshToken,
   forgotPassword,
   resetPassword,
 };

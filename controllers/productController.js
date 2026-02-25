@@ -179,6 +179,7 @@ const updateProduct = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 const deleteProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);

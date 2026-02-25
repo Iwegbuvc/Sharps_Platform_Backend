@@ -7,6 +7,7 @@ const {
   logoutUser,
   forgotPassword,
   resetPassword,
+  handleRefreshToken,
 } = require("../controllers/userController");
 const {
   validateNewUser,
@@ -23,5 +24,7 @@ router.post("/reset-password", authLimiter, validatePassword, resetPassword);
 // 🔐 Protected profile route
 router.get("/myProfile", verifyToken, getProfile);
 router.post("/logout", verifyToken, logoutUser);
+// Refresh token rotation route
+router.post("/refresh-token", handleRefreshToken);
 
 module.exports = router;

@@ -119,52 +119,6 @@ const initializePayment = async (req, res) => {
   }
 };
 
-// const verifyPayment = async (req, res) => {
-//   try {
-//     const { reference, orderId } = req.body;
-
-//     console.log("Paystack secret key:", process.env.PAYSTACK_SECRET_KEY);
-
-//     // Call Paystack API to verify transaction
-//     const response = await axios.get(
-//       `https://api.paystack.co/transaction/verify/${reference}`,
-//       {
-//         headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` },
-//       },
-//     );
-
-//     if (!response.data.status) {
-//       return res.status(400).json({ message: "Payment verification failed" });
-//     }
-
-//     const order = await Order.findById(orderId);
-//     if (!order) return res.status(404).json({ message: "Order not found" });
-
-//     // Update order as paid
-//     order.paymentStatus = "paid";
-//     order.paymentReference = reference;
-//     order.paidAt = new Date();
-//     await order.save();
-
-//     // Reduce product stock
-//     for (const item of order.items) {
-//       await Product.findByIdAndUpdate(item.product, {
-//         $inc: { stock: -item.quantity },
-//       });
-//     }
-
-//     // Clear user's cart
-//     await Cart.findOneAndDelete({ user: order.user });
-
-//     res.json({
-//       message: "Payment verified",
-//       order: mapOrderToFrontend(order),
-//     });
-//   } catch (error) {
-//     console.error(error.response?.data || error.message);
-//     res.status(500).json({ message: "Payment verification failed" });
-//   }
-// };
 const verifyPayment = async (req, res) => {
   try {
     const { reference, orderId } = req.body;
