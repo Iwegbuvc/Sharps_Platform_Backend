@@ -90,7 +90,7 @@ const generatePasswordResetMail = (firstName) => {
     <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 20px auto;">
         <!-- Header -->
         <tr>
-            <td style="background-color: #2F67FA; padding: 20px; text-align: center;">
+            <td style="background-color: #FFD700; padding: 20px; text-align: center;">
                 <h1 style="color: #ffffff; margin: 0; font-size: 28px;">Sharps Clothing</h1>
                 <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 14px;">Your Account is Secure</p>
             </td>
@@ -99,7 +99,7 @@ const generatePasswordResetMail = (firstName) => {
         <!-- Main Content -->
         <tr>
             <td style="background-color: #ffffff; padding: 30px; text-align: center;">
-                <h2 style="color: #2F67FA; margin: 0 0 20px 0;">Password Changed Successfully!</h2>
+                <h2 style="color: #FFD700; margin: 0 0 20px 0;">Password Changed Successfully!</h2>
                 
                 <!-- Success Icon -->
                 <div style="font-size: 48px; margin: 20px 0;">🔒</div>
@@ -113,7 +113,7 @@ const generatePasswordResetMail = (firstName) => {
                 <!-- Login Button -->
                 <table border="0" cellpadding="0" cellspacing="0" style="margin: 20px auto;">
                     <tr>
-                        <td style="background-color: #2F67FA; border-radius: 5px;">
+                        <td style="background-color: #FFD700; border-radius: 5px;">
                             <a href="${process.env.FRONTEND_URL}" 
                                style="display: inline-block; padding: 14px 35px; color: #ffffff; 
                                       text-decoration: none; font-weight: bold; font-size: 16px;">
@@ -133,7 +133,7 @@ const generatePasswordResetMail = (firstName) => {
         <tr>
             <td style="background-color: #fff5f0; padding: 20px; font-size: 14px;">
                 <p style="margin: 0; line-height: 1.6;">
-                    <strong style="color: #2F67FA;">Security Tip:</strong> Keep your account safe 
+                    <strong style="color: #FFD700;">Security Tip:</strong> Keep your account safe 
                     by using a unique password and never sharing it with anyone.
                 </p>
             </td>
