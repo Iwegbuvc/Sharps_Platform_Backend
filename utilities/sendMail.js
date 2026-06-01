@@ -1,12 +1,72 @@
-const { BrevoClient } = require("@getbrevo/brevo");
+// const { BrevoClient } = require("@getbrevo/brevo");
 
-// Initialize BrevoClient with API key
-const brevo = new BrevoClient({
-  apiKey: process.env.BREVO_API_KEY,
-});
+// // Initialize BrevoClient with API key
+// const brevo = new BrevoClient({
+//   apiKey: process.env.BREVO_API_KEY,
+// });
 
+// /**
+//  * sendMail - Send an email via Brevo SDK for Sharps Clothing Platform
+//  * @param {string} to - Recipient email address
+//  * @param {string} subject - Email subject
+//  * @param {string} htmlContent - HTML content of the email
+//  * @param {string} [toName] - Optional recipient name
+//  */
+// async function sendMail(to, subject, htmlContent, toName = "") {
+//   if (!process.env.BREVO_API_KEY) {
+//     throw new Error("BREVO_API_KEY is not set in environment");
+//   }
+//   if (!process.env.BREVO_FROM_EMAIL) {
+//     throw new Error("BREVO_FROM_EMAIL is not set in environment");
+//   }
+
+//   try {
+//     // Replace all occurrences of 'crypto' (case-insensitive) with 'clothing' in the email content for branding consistency
+//     const replacedHtmlContent = (htmlContent || "").replace(
+//       /crypto/gi,
+//       "clothing",
+//     );
+//     // Remove HTML tags for plain text fallback
+//     const replacedTextContent = (replacedHtmlContent || "").replace(
+//       /<[^>]+>/g,
+//       "",
+//     );
+//     // Ensure name is always present and non-empty for Brevo API
+//     const recipientName =
+//       toName && typeof toName === "string" && toName.trim() !== ""
+//         ? toName
+//         : "Sharps Customer";
+
+//     const payload = {
+//       sender: {
+//         email: process.env.BREVO_FROM_EMAIL,
+//         name: "Sharps Clothing",
+//       },
+//       to: [{ email: to, name: recipientName }],
+//       subject,
+//       htmlContent: replacedHtmlContent,
+//       textContent: replacedTextContent,
+//     };
+
+//     const result = await brevo.transactionalEmails.sendTransacEmail(payload);
+
+//     const messageId =
+//       result?.body?.messageId ?? result?.messageId ?? JSON.stringify(result);
+//     console.log("Email sent! Message ID:", messageId);
+
+//     return result;
+//   } catch (err) {
+//     console.error(
+//       "Brevo sendMail error:",
+//       err?.response?.body ?? err?.response ?? err?.message ?? err,
+//     );
+//     throw err;
+//   }
+// }
+
+// module.exports = sendMail;
 /**
- * sendMail - Send an email via Brevo SDK for Sharps Clothing Platform
+ * sendMail - Send an email via Brevo HTTP API (no SDK dependency)
  * @param {string} to - Recipient email address
  * @param {string} subject - Email subject
  * @param {string} htmlContent - HTML content of the email
@@ -20,46 +80,53 @@ async function sendMail(to, subject, htmlContent, toName = "") {
     throw new Error("BREVO_FROM_EMAIL is not set in environment");
   }
 
+  // Replace all occurrences of 'crypto' with 'clothing' for branding consistency
+  const replacedHtmlContent = (htmlContent || "").replace(
+    /crypto/gi,
+    "clothing",
+  );
+
+  // Remove HTML tags for plain text fallback
+  const replacedTextContent = replacedHtmlContent.replace(/<[^>]+>/g, "");
+
+  // Ensure name is always present and non-empty
+  const recipientName =
+    toName && typeof toName === "string" && toName.trim() !== ""
+      ? toName
+      : "Sharps Customer";
+
+  const payload = {
+    sender: {
+      email: process.env.BREVO_FROM_EMAIL,
+      name: "Sharps Clothing",
+    },
+    to: [{ email: to, name: recipientName }],
+    subject,
+    htmlContent: replacedHtmlContent,
+    textContent: replacedTextContent,
+  };
+
   try {
-    // Replace all occurrences of 'crypto' (case-insensitive) with 'clothing' in the email content for branding consistency
-    const replacedHtmlContent = (htmlContent || "").replace(
-      /crypto/gi,
-      "clothing",
-    );
-    // Remove HTML tags for plain text fallback
-    const replacedTextContent = (replacedHtmlContent || "").replace(
-      /<[^>]+>/g,
-      "",
-    );
-    // Ensure name is always present and non-empty for Brevo API
-    const recipientName =
-      toName && typeof toName === "string" && toName.trim() !== ""
-        ? toName
-        : "Sharps Customer";
-
-    const payload = {
-      sender: {
-        email: process.env.BREVO_FROM_EMAIL,
-        name: "Sharps Clothing",
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "api-key": process.env.BREVO_API_KEY,
       },
-      to: [{ email: to, name: recipientName }],
-      subject,
-      htmlContent: replacedHtmlContent,
-      textContent: replacedTextContent,
-    };
+      body: JSON.stringify(payload),
+    });
 
-    const result = await brevo.transactionalEmails.sendTransacEmail(payload);
+    const data = await response.json();
 
-    const messageId =
-      result?.body?.messageId ?? result?.messageId ?? JSON.stringify(result);
-    console.log("Email sent! Message ID:", messageId);
+    if (!response.ok) {
+      console.error("Brevo API error:", data);
+      throw new Error(data?.message || "Failed to send email");
+    }
 
-    return result;
+    console.log("Email sent! Message ID:", data.messageId);
+    return data;
   } catch (err) {
-    console.error(
-      "Brevo sendMail error:",
-      err?.response?.body ?? err?.response ?? err?.message ?? err,
-    );
+    console.error("Brevo sendMail error:", err?.message ?? err);
     throw err;
   }
 }
