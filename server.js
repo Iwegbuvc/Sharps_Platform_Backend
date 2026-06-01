@@ -39,6 +39,7 @@ const allowedOrigins = [
   "http://localhost:5174",
   "https://sharps-platform-zqio.vercel.app",
   "https://sharpscollections.org",
+  "https://www.sharpscollections.org",
 ];
 
 app.use(
