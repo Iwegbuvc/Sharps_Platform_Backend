@@ -11,7 +11,6 @@ const orderItemSchema = new mongoose.Schema({
   quantity: Number,
   size: String,
   image: String,
-  selectedImage: String,
   color: String,
 });
 
@@ -39,7 +38,7 @@ const orderSchema = new mongoose.Schema(
 
     paymentStatus: {
       type: String,
-      enum: ["pending", "paid", "failed", "Not Paid"],
+      enum: ["pending", "paid", "failed"],
       default: "pending",
     },
 

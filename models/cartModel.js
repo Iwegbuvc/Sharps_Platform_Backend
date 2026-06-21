@@ -15,16 +15,13 @@ const cartItemSchema = new mongoose.Schema(
     },
 
     size: String,
-    color: String,
-
-    // Store the selected image identifier (URL, filename, or ID)
-    selectedImage: String,
+    // color: String,
 
     priceAtTime: {
       type: Number,
       required: true,
     },
-    image: String, // (optional, can be removed if not used)
+    image: String,
   },
   { _id: true },
 );

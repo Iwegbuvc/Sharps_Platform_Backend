@@ -1,3 +1,5 @@
+// middlewares/validate.js
+
 const validateNewUser = (req, res, next) => {
   const { name, email, password } = req.body;
   const errors = [];
@@ -14,11 +16,11 @@ const validateNewUser = (req, res, next) => {
     errors.push("Password is required");
   } else if (
     !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/.test(
-      password,
+      password
     )
   ) {
     errors.push(
-      "Password must contain uppercase, lowercase, number, and special character",
+      "Password must contain uppercase, lowercase, number, and special character"
     );
   }
 
@@ -58,11 +60,11 @@ const validatePassword = (req, res, next) => {
     errors.push("Enter your password");
   } else if (
     !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/.test(
-      password,
+      password
     )
   ) {
     errors.push(
-      "Password must contain uppercase, lowercase, number, and special character",
+      "Password must contain uppercase, lowercase, number, and special character"
     );
   }
 
