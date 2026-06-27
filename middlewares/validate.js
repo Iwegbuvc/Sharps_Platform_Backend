@@ -52,6 +52,23 @@ const validateLogin = (req, res, next) => {
   next();
 };
 
+const validateForgotPassword = (req, res, next) => {
+  const { email } = req.body;
+  const errors = [];
+
+  if (!email) {
+    errors.push("Enter your email");
+  } else if (!validateEmail(email)) {
+    errors.push("Enter a valid email");
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({ message: errors });
+  }
+
+  next();
+};
+
 const validatePassword = (req, res, next) => {
   const { password } = req.body;
   const errors = [];
@@ -84,5 +101,6 @@ function validateEmail(email) {
 module.exports = {
   validateNewUser,
   validateLogin,
+  validateForgotPassword,
   validatePassword,
 };

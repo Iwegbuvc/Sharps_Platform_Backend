@@ -2,6 +2,11 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/usersModel");
 const BlacklistedToken = require("../models/blackListTokenModel"); // Needed for logout
+const sendMail = require("../utilities/sendMail");
+const {
+  forgotPasswordMail,
+  passwordResetConfirmationMail,
+} = require("../utilities/mailGenerator");
 
 // REGISTER USER
 const registerUser = async (req, res) => {
@@ -84,6 +89,98 @@ const loginUser = async (req, res) => {
   }
 };
 
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!process.env.PASSWORD_RESET_TOKEN) {
+      return res
+        .status(500)
+        .json({ message: "Password reset secret is not configured" });
+    }
+
+    const resetToken = jwt.sign(
+      { email: user.email },
+      process.env.PASSWORD_RESET_TOKEN,
+      { expiresIn: "1h" },
+    );
+
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires = Date.now() + 3600 * 1000;
+    await user.save();
+
+    const html = forgotPasswordMail(user.name || "Customer", resetToken);
+    await sendMail(
+      user.email,
+      "Reset Your Sharps Password",
+      html,
+    );
+
+    return res.status(200).json({
+      message: "Password reset email sent successfully",
+    });
+  } catch (error) {
+    console.error("Forgot Password Error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  const { resetToken, password } = req.body;
+
+  if (!resetToken || !password) {
+    return res.status(400).json({ message: "Enter required fields" });
+  }
+
+  try {
+    const decoded = jwt.verify(resetToken, process.env.PASSWORD_RESET_TOKEN);
+
+    const user = await User.findOne({
+      email: decoded.email,
+      resetPasswordToken: resetToken,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res
+        .status(400)
+        .json({ message: "Invalid or expired reset token" });
+    }
+
+    const isSamePassword = await bcrypt.compare(password, user.password);
+    if (isSamePassword) {
+      return res.status(400).json({
+        message: "Please choose a new password different from your old one",
+      });
+    }
+
+    user.password = await bcrypt.hash(password, 12);
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+    await user.save();
+
+    const html = passwordResetConfirmationMail(user.name || "Customer");
+    await sendMail(
+      user.email,
+      "Your Sharps Password Was Changed",
+      html,
+    );
+
+    return res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    console.error("Reset Password Error:", error);
+    if (error.name === "TokenExpiredError") {
+      return res.status(400).json({ message: "Reset token has expired" });
+    }
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 // GET PROFILE (protected)
 const getProfile = async (req, res) => {
   try {
@@ -147,4 +244,11 @@ const logoutUser = async (req, res) => {
   return res.status(204).send(); // Logout successful
 };
 
-module.exports = { registerUser, loginUser, getProfile, logoutUser };
+module.exports = {
+  registerUser,
+  loginUser,
+  forgotPassword,
+  resetPassword,
+  getProfile,
+  logoutUser,
+};
