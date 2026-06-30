@@ -14,7 +14,15 @@ const productSchema = new mongoose.Schema(
 
     category: {
       type: String,
-      enum: ["accessories", "shirts", "trousers", "shoes", "artifacts"],
+      enum: [
+        "accessories",
+        "shirts",
+        "trousers",
+        "shoes",
+        "artifacts",
+        "interiors",
+        "others",
+      ],
       required: true,
     },
 
@@ -34,7 +42,7 @@ const productSchema = new mongoose.Schema(
       required: true,
     },
 
-    newProduct: { type: Boolean, default: false },
+    isNew: { type: Boolean, default: false },
     featured: { type: Boolean, default: false },
   },
   { timestamps: true },
